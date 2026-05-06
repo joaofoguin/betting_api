@@ -276,75 +276,8 @@
         </header>
 
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('apostadores')">Apostadores</button>
-            <button class="tab-btn" onclick="switchTab('lutadores')">Lutadores</button>
             <button class="tab-btn" onclick="switchTab('lutas')">Lutas</button>
-            <button class="tab-btn" onclick="switchTab('apostas')">Apostas</button>
-            <button class="tab-btn" onclick="switchTab('status')">Status</button>
-        </div>
-
-        <!-- TAB: APOSTADORES -->
-        <div id="apostadores" class="tab-content active">
-            <h2>Gerenciar Apostadores</h2>
-            <div id="msg-apostadores" class="message"></div>
-            
-            <form onsubmit="createApostador(event)">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="ap-nome">Nome:</label>
-                        <input type="text" id="ap-nome" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="ap-idade">Idade:</label>
-                        <input type="number" id="ap-idade" required>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="ap-pix">Chave PIX:</label>
-                    <input type="text" id="ap-pix" required>
-                </div>
-                <button type="submit">Criar Apostador</button>
-            </form>
-
-            <div class="data-list">
-                <h3>Lista de Apostadores</h3>
-                <div id="apostadores-list"></div>
-            </div>
-        </div>
-
-        <!-- TAB: LUTADORES -->
-        <div id="lutadores" class="tab-content">
-            <h2>Gerenciar Lutadores</h2>
-            <div id="msg-lutadores" class="message"></div>
-            
-            <form onsubmit="createLutador(event)">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="lt-nome">Nome:</label>
-                        <input type="text" id="lt-nome" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="lt-categoria">Categoria:</label>
-                        <input type="text" id="lt-categoria" required>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="lt-apelido">Apelido:</label>
-                        <input type="text" id="lt-apelido">
-                    </div>
-                    <div class="form-group">
-                        <label for="lt-arte">Arte Marcial:</label>
-                        <input type="text" id="lt-arte">
-                    </div>
-                </div>
-                <button type="submit">Criar Lutador</button>
-            </form>
-
-            <div class="data-list">
-                <h3>Lista de Lutadores</h3>
-                <div id="lutadores-list"></div>
-            </div>
+            <button class="tab-btn" onclick="switchTab('status')">Status da API</button>
         </div>
 
         <!-- TAB: LUTAS -->
@@ -381,47 +314,6 @@
                 <div id="lutas-list"></div>
             </div>
         </div>
-
-        <!-- TAB: APOSTAS -->
-        <div id="apostas" class="tab-content">
-            <h2>Gerenciar Apostas</h2>
-            <div id="msg-apostas" class="message"></div>
-            
-            <form onsubmit="createAposta(event)">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="ap-valor">Valor da Aposta (R$):</label>
-                        <input type="number" id="ap-valor" step="0.01" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="ap-luta">ID da Luta:</label>
-                        <input type="number" id="ap-luta" required>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="ap-lutador">ID do Lutador (Favorito):</label>
-                        <input type="number" id="ap-lutador" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="ap-apostador">ID do Apostador:</label>
-                        <input type="number" id="ap-apostador" required>
-                    </div>
-                </div>
-                <button type="submit">Realizar Aposta</button>
-            </form>
-
-            <div class="data-list">
-                <h3>Lista de Apostas</h3>
-                <div id="apostas-list"></div>
-            </div>
-        </div>
-
-        <!-- TAB: STATUS -->
-        <div id="status" class="tab-content">
-            <h2>Status da API</h2>
-            <div id="status-content"></div>
-        </div>
     </div>
 
     <script>
@@ -442,11 +334,7 @@
             event.target.classList.add('active');
 
             // Carrega dados ao abrir a aba
-            if (tabName === 'apostadores') loadApostadores();
-            if (tabName === 'lutadores') loadLutadores();
             if (tabName === 'lutas') loadLutas();
-            if (tabName === 'apostas') loadApostas();
-            if (tabName === 'status') loadStatus();
         }
 
         // Função para mostrar mensagens
@@ -457,136 +345,6 @@
             setTimeout(() => {
                 msgElement.className = 'message';
             }, 5000);
-        }
-
-        // ===== APOSTADORES =====
-        async function createApostador(e) {
-            e.preventDefault();
-            const data = {
-                nome: document.getElementById('ap-nome').value,
-                idade: parseInt(document.getElementById('ap-idade').value),
-                chave_pix: document.getElementById('ap-pix').value
-            };
-
-            try {
-                const response = await fetch(`${API_URL}/apostadores/`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                const result = await response.json();
-                showMessage('msg-apostadores', `✓ ${result.message}`, 'success');
-                e.target.reset();
-                loadApostadores();
-            } catch (error) {
-                showMessage('msg-apostadores', `✗ Erro: ${error.message}`, 'error');
-            }
-        }
-
-        async function loadApostadores() {
-            try {
-                const response = await fetch(`${API_URL}/apostadores/`);
-                const data = await response.json();
-                const listDiv = document.getElementById('apostadores-list');
-                
-                if (data.length === 0) {
-                    listDiv.innerHTML = '<p style="color: #999;">Nenhum apostador cadastrado</p>';
-                    return;
-                }
-
-                listDiv.innerHTML = data.map(item => `
-                    <div class="list-item">
-                        <div class="list-item-content">
-                            <p><strong>ID:</strong> ${item.id}</p>
-                            <p><strong>Nome:</strong> ${item.nome}</p>
-                            <p><strong>Idade:</strong> ${item.idade}</p>
-                            <p><strong>PIX:</strong> ${item.chave_pix}</p>
-                        </div>
-                        <div class="list-item-actions">
-                            <button class="btn-small btn-delete" onclick="deleteApostador(${item.id})">Deletar</button>
-                        </div>
-                    </div>
-                `).join('');
-            } catch (error) {
-                console.error('Erro ao carregar apostadores:', error);
-            }
-        }
-
-        async function deleteApostador(id) {
-            if (!confirm('Tem certeza que deseja deletar este apostador?')) return;
-            try {
-                await fetch(`${API_URL}/apostadores/${id}`, { method: 'DELETE' });
-                showMessage('msg-apostadores', '✓ Apostador deletado com sucesso', 'success');
-                loadApostadores();
-            } catch (error) {
-                showMessage('msg-apostadores', `✗ Erro: ${error.message}`, 'error');
-            }
-        }
-
-        // ===== LUTADORES =====
-        async function createLutador(e) {
-            e.preventDefault();
-            const data = {
-                nome: document.getElementById('lt-nome').value,
-                categoria: document.getElementById('lt-categoria').value,
-                apelido: document.getElementById('lt-apelido').value || null,
-                arte: document.getElementById('lt-arte').value || null
-            };
-
-            try {
-                const response = await fetch(`${API_URL}/lutadores/`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                const result = await response.json();
-                showMessage('msg-lutadores', `✓ ${result.message}`, 'success');
-                e.target.reset();
-                loadLutadores();
-            } catch (error) {
-                showMessage('msg-lutadores', `✗ Erro: ${error.message}`, 'error');
-            }
-        }
-
-        async function loadLutadores() {
-            try {
-                const response = await fetch(`${API_URL}/lutadores/`);
-                const data = await response.json();
-                const listDiv = document.getElementById('lutadores-list');
-                
-                if (data.length === 0) {
-                    listDiv.innerHTML = '<p style="color: #999;">Nenhum lutador cadastrado</p>';
-                    return;
-                }
-
-                listDiv.innerHTML = data.map(item => `
-                    <div class="list-item">
-                        <div class="list-item-content">
-                            <p><strong>ID:</strong> ${item.id}</p>
-                            <p><strong>Nome:</strong> ${item.nome}</p>
-                            <p><strong>Categoria:</strong> ${item.categoria}</p>
-                            <p><strong>Apelido:</strong> ${item.apelido || 'N/A'}</p>
-                            <p><strong>Arte:</strong> ${item.arte || 'N/A'}</p>
-                        </div>
-                        <div class="list-item-actions">
-                            <button class="btn-small btn-delete" onclick="deleteLutador(${item.id})">Deletar</button>
-                        </div>
-                    </div>
-                `).join('');
-            } catch (error) {
-                console.error('Erro ao carregar lutadores:', error);
-            }
-        }
-
-        async function deleteLutador(id) {
-            if (!confirm('Tem certeza que deseja deletar este lutador?')) return;
-            try {
-                await fetch(`${API_URL}/lutadores/${id}`, { method: 'DELETE' });
-                showMessage('msg-lutadores', '✓ Lutador deletado com sucesso', 'success');
-                loadLutadores();
-            } catch (error) {
-                showMessage('msg-lutadores', `✗ Erro: ${error.message}`, 'error');
-            }
         }
 
         // ===== LUTAS =====
@@ -652,72 +410,6 @@
                 loadLutas();
             } catch (error) {
                 showMessage('msg-lutas', `✗ Erro: ${error.message}`, 'error');
-            }
-        }
-
-        // ===== APOSTAS =====
-        async function createAposta(e) {
-            e.preventDefault();
-            const data = {
-                valor: parseFloat(document.getElementById('ap-valor').value),
-                id_luta: parseInt(document.getElementById('ap-luta').value),
-                id_lutador: parseInt(document.getElementById('ap-lutador').value),
-                id_apostador: parseInt(document.getElementById('ap-apostador').value)
-            };
-
-            try {
-                const response = await fetch(`${API_URL}/apostas/`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                const result = await response.json();
-                showMessage('msg-apostas', `✓ ${result.message}`, 'success');
-                e.target.reset();
-                loadApostas();
-            } catch (error) {
-                showMessage('msg-apostas', `✗ Erro: ${error.message}`, 'error');
-            }
-        }
-
-        async function loadApostas() {
-            try {
-                const response = await fetch(`${API_URL}/apostas/`);
-                const data = await response.json();
-                const listDiv = document.getElementById('apostas-list');
-                
-                if (data.length === 0) {
-                    listDiv.innerHTML = '<p style="color: #999;">Nenhuma aposta realizada</p>';
-                    return;
-                }
-
-                listDiv.innerHTML = data.map(item => `
-                    <div class="list-item">
-                        <div class="list-item-content">
-                            <p><strong>ID:</strong> ${item.id}</p>
-                            <p><strong>Valor:</strong> R$ ${item.valor.toFixed(2)}</p>
-                            <p><strong>ID da Luta:</strong> ${item.id_luta}</p>
-                            <p><strong>ID do Lutador:</strong> ${item.id_lutador}</p>
-                            <p><strong>ID do Apostador:</strong> ${item.id_apostador}</p>
-                        </div>
-                        <div class="list-item-actions">
-                            <button class="btn-small btn-delete" onclick="deleteAposta(${item.id})">Deletar</button>
-                        </div>
-                    </div>
-                `).join('');
-            } catch (error) {
-                console.error('Erro ao carregar apostas:', error);
-            }
-        }
-
-        async function deleteAposta(id) {
-            if (!confirm('Tem certeza que deseja remover esta aposta?')) return;
-            try {
-                await fetch(`${API_URL}/apostas/${id}`, { method: 'DELETE' });
-                showMessage('msg-apostas', '✓ Aposta removida com sucesso', 'success');
-                loadApostas();
-            } catch (error) {
-                showMessage('msg-apostas', `✗ Erro: ${error.message}`, 'error');
             }
         }
 

@@ -1,8 +1,9 @@
-# Documentação da API de Apostas (CRUD Completo)
+# Documentação da API de Distribuição de Lutas
 
-Esta API RESTful permite gerenciar o ciclo de vida completo de um sistema de apostas em lutas.
+Esta API é responsável pelo agendamento e distribuição de lutas, integrando-se com um serviço externo de gerenciamento de lutadores.
 
 ## URL Base do Serviço
+*   **Local:** `http://127.0.0.1:8000`
 *   **Público:** `https://betting-api-hmup.onrender.com`
 
 ## Endpoints da API
@@ -10,44 +11,28 @@ Esta API RESTful permite gerenciar o ciclo de vida completo de um sistema de apo
 | Método HTTP | Rota | Descrição |
 | :--- | :--- | :--- |
 | `GET` | `/` | Verifica o status da API. |
-| **Apostadores** | | |
-| `POST` | `/apostadores/` | Cria um novo apostador. |
-| `GET` | `/apostadores/` | Lista todos os apostadores. |
-| `PUT` | `/apostadores/{id}` | Atualiza dados de um apostador existente. |
-| `DELETE` | `/apostadores/{id}` | Remove um apostador do sistema. |
-| **Lutadores** | | |
-| `POST` | `/lutadores/` | Cria um novo lutador. |
-| `GET` | `/lutadores/` | Lista todos os lutadores. |
-| `PUT` | `/lutadores/{id}` | Atualiza dados de um lutador. |
-| `DELETE` | `/lutadores/{id}` | Remove um lutador. |
-| **Lutas** | | |
-| `POST` | `/lutas/` | Agenda uma nova luta. |
-| `GET` | `/lutas/` | Lista todas as lutas. |
-| `PUT` | `/lutas/{id}` | Atualiza dados de uma luta. |
-| `DELETE` | `/lutas/{id}` | Cancela/Remove uma luta. |
-| **Apostas** | | |
-| `POST` | `/apostas/` | Realiza uma nova aposta. |
-| `GET` | `/apostas/` | Lista todas as apostas. |
-| `PUT` | `/apostas/{id}` | Altera o valor ou dados de uma aposta. |
-| `DELETE` | `/apostas/{id}` | Remove uma aposta. |
+| `POST` | `/lutas/` | Agenda uma nova luta (Valida IDs na API externa). |
+| `GET` | `/lutas/` | Lista todas as lutas agendadas. |
+| `GET` | `/lutas/{id}` | Obtém detalhes de uma luta específica. |
+| `PUT` | `/lutas/{id}` | Atualiza os dados de uma luta. |
+| `DELETE` | `/lutas/{id}` | Cancela uma luta agendada. |
 
-## Exemplos de Corpo (Body) para PUT
+## Integração com API Externa
 
-O corpo para o `PUT` é idêntico ao do `POST`. A diferença é que você deve passar o `id` na URL.
+A API possui uma lógica de integração para validar se os `id_lutador1` e `id_lutador2` existem em um serviço externo antes de permitir o agendamento.
 
-### Exemplo: Atualizar Apostador (`PUT /apostadores/1`)
+### Exemplo de Corpo (Body) para Agendar Luta (`POST /lutas/`)
+
 ```json
 {
-  "nome": "João Silva Atualizado",
-  "idade": 31,
-  "chave_pix": "novo.pix@email.com"
+  "evento": "UFC 300",
+  "data": "2026-07-20",
+  "horario": "23:00",
+  "id_lutador1": 10,
+  "id_lutador2": 25,
+  "categoria": "Peso Pesado"
 }
 ```
 
-## Como Testar
-Acesse `/docs` no seu navegador para usar a interface interativa.
-1. Clique no método desejado (PUT ou DELETE).
-2. Clique em **Try it out**.
-3. Preencha o campo `id` com o número do registro que deseja alterar ou excluir.
-4. No caso do PUT, edite o JSON com as novas informações.
-5. Clique em **Execute**.
+## Como Configurar a API Externa
+No arquivo `main.py`, localize a variável `EXTERNAL_LUTADORES_API_URL` e substitua pela URL real do serviço de lutadores. A função `validar_lutador_externo` já está preparada para realizar a chamada via `requests`.
