@@ -3,450 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API de Apostas - Interface Web</title>
+    <title>Agendamento de Lutas - SD</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        header {
-            text-align: center;
-            color: white;
-            margin-bottom: 30px;
-        }
-
-        header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-        }
-
-        header p {
-            font-size: 1.1em;
-            opacity: 0.9;
-        }
-
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .tab-btn {
-            padding: 12px 24px;
-            background-color: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: 2px solid white;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1em;
-            font-weight: bold;
-            transition: all 0.3s ease;
-        }
-
-        .tab-btn:hover {
-            background-color: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
-        }
-
-        .tab-btn.active {
-            background-color: white;
-            color: #667eea;
-        }
-
-        .tab-content {
-            display: none;
-            background: white;
-            border-radius: 10px;
-            padding: 30px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-            color: #333;
-        }
-
-        input, select, textarea {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-size: 1em;
-            transition: border-color 0.3s ease;
-        }
-
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        button {
-            background-color: #667eea;
-            color: white;
-            padding: 12px 30px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1em;
-            font-weight: bold;
-            transition: all 0.3s ease;
-        }
-
-        button:hover {
-            background-color: #764ba2;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        button:active {
-            transform: translateY(0);
-        }
-
-        .btn-danger {
-            background-color: #e74c3c;
-            margin-top: 10px;
-        }
-
-        .btn-danger:hover {
-            background-color: #c0392b;
-        }
-
-        .message {
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .message.success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-            display: block;
-        }
-
-        .message.error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-            display: block;
-        }
-
-        .data-list {
-            margin-top: 30px;
-        }
-
-        .data-list h3 {
-            color: #333;
-            margin-bottom: 15px;
-            font-size: 1.3em;
-        }
-
-        .list-item {
-            background-color: #f8f9fa;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 5px;
-            border-left: 4px solid #667eea;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .list-item-content {
-            flex: 1;
-        }
-
-        .list-item-content p {
-            margin: 5px 0;
-            color: #555;
-        }
-
-        .list-item-content strong {
-            color: #333;
-        }
-
-        .list-item-actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn-small {
-            padding: 8px 15px;
-            font-size: 0.9em;
-        }
-
-        .btn-edit {
-            background-color: #3498db;
-        }
-
-        .btn-edit:hover {
-            background-color: #2980b9;
-        }
-
-        .btn-delete {
-            background-color: #e74c3c;
-        }
-
-        .btn-delete:hover {
-            background-color: #c0392b;
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.85em;
-            font-weight: bold;
-        }
-
-        .status-online {
-            background-color: #d4edda;
-            color: #155724;
-        }
-
-        @media (max-width: 768px) {
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-
-            header h1 {
-                font-size: 1.8em;
-            }
-
-            .tabs {
-                gap: 5px;
-            }
-
-            .tab-btn {
-                padding: 10px 15px;
-                font-size: 0.9em;
-            }
-
-            .list-item {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .list-item-actions {
-                width: 100%;
-                margin-top: 10px;
-            }
-        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; max-width: 500px; margin: 0 auto; background: #ececec; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h2, h3 { color: #333; text-align: center; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
+        input { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 6px; outline: none; }
+        input:focus { border-color: #007bff; }
+        button { width: 100%; padding: 12px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; transition: 0.3s; }
+        button:hover { background: #444; }
+        .luta-item { background: white; padding: 15px; margin-top: 10px; border-radius: 8px; border-left: 5px solid #222; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .msg { padding: 10px; margin-bottom: 15px; border-radius: 6px; display: none; text-align: center; font-weight: bold; }
+        .success { background: #d4edda; color: #155724; display: block; }
+        .error { background: #f8d7da; color: #721c24; display: block; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🥊 API de Apostas em Lutas</h1>
-            <p>Interface Web para Gerenciar Apostadores, Lutadores, Lutas e Apostas</p>
-        </header>
 
-        <div class="tabs">
-            <button class="tab-btn" onclick="switchTab('lutas')">Lutas</button>
-            <button class="tab-btn" onclick="switchTab('status')">Status da API</button>
-        </div>
-
-        <!-- TAB: LUTAS -->
-        <div id="lutas" class="tab-content">
-            <h2>Gerenciar Lutas</h2>
-            <div id="msg-lutas" class="message"></div>
-            
-            <form onsubmit="createLuta(event)">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="lu-data">Data:</label>
-                        <input type="date" id="lu-data" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="lu-horario">Horário:</label>
-                        <input type="time" id="lu-horario" required>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="lu-lutador1">Lutador 1 (ID):</label>
-                        <input type="number" id="lu-lutador1" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="lu-lutador2">Lutador 2 (ID):</label>
-                        <input type="number" id="lu-lutador2" required>
-                    </div>
-                </div>
-                <button type="submit">Agendar Luta</button>
-            </form>
-
-            <div class="data-list">
-                <h3>Lista de Lutas</h3>
-                <div id="lutas-list"></div>
+    <div class="card">
+        <h2>Agendar Nova Luta</h2>
+        <div id="msg" class="msg"></div>
+        
+        <form id="lutaForm" onsubmit="salvarLuta(event)">
+            <div class="form-group">
+                <label for="data">Data da Luta:</label>
+                <input type="date" id="data" required>
             </div>
-        </div>
+            <div class="form-group">
+                <label for="horario">Horário:</label>
+                <input type="time" id="horario" required>
+            </div>
+            <div class="form-group">
+                <label for="id1">ID do Lutador 1:</label>
+                <input type="number" id="id1" placeholder="Ex: 10" required>
+            </div>
+            <div class="form-group">
+                <label for="id2">ID do Lutador 2:</label>
+                <input type="number" id="id2" placeholder="Ex: 25" required>
+            </div>
+            <button type="submit">Confirmar Agendamento</button>
+        </form>
+    </div>
+
+    <div id="lista-lutas">
+        <h3>Lutas Confirmadas</h3>
+        <div id="lutas"></div>
     </div>
 
     <script>
-        const API_URL = 'http://127.0.0.1:8000';
+        // Certifique-se que a API está rodando nesta porta (8001)
+        const API_URL = 'http://127.0.0.1:8001';
 
-        // Função para trocar de aba
-        function switchTab(tabName) {
-            // Esconde todas as abas
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-
-            // Mostra a aba selecionada
-            document.getElementById(tabName).classList.add('active');
-            event.target.classList.add('active');
-
-            // Carrega dados ao abrir a aba
-            if (tabName === 'lutas') loadLutas();
-        }
-
-        // Função para mostrar mensagens
-        function showMessage(elementId, message, type) {
-            const msgElement = document.getElementById(elementId);
-            msgElement.textContent = message;
-            msgElement.className = `message ${type}`;
-            setTimeout(() => {
-                msgElement.className = 'message';
-            }, 5000);
-        }
-
-        // ===== LUTAS =====
-        async function createLuta(e) {
+        async function salvarLuta(e) {
             e.preventDefault();
-            const data = {
-                horario: document.getElementById('lu-horario').value,
-                data: document.getElementById('lu-data').value,
-                id_lutador1: parseInt(document.getElementById('lu-lutador1').value),
-                id_lutador2: parseInt(document.getElementById('lu-lutador2').value)
+            
+            // PAYLOAD REFORMULADO: Apenas o que o seu novo LutaBase aceita
+            const payload = {
+                data: document.getElementById('data').value,
+                horario: document.getElementById('horario').value,
+                id_lutador1: parseInt(document.getElementById('id1').value),
+                id_lutador2: parseInt(document.getElementById('id2').value)
             };
 
             try {
-                const response = await fetch(`${API_URL}/lutas/`, {
+                const res = await fetch(`${API_URL}/lutas/`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify(payload)
                 });
-                const result = await response.json();
-                showMessage('msg-lutas', `✓ ${result.message}`, 'success');
-                e.target.reset();
-                loadLutas();
-            } catch (error) {
-                showMessage('msg-lutas', `✗ Erro: ${error.message}`, 'error');
-            }
-        }
 
-        async function loadLutas() {
-            try {
-                const response = await fetch(`${API_URL}/lutas/`);
-                const data = await response.json();
-                const listDiv = document.getElementById('lutas-list');
-                
-                if (data.length === 0) {
-                    listDiv.innerHTML = '<p style="color: #999;">Nenhuma luta agendada</p>';
-                    return;
+                const data = await res.json();
+
+                if (res.ok) {
+                    showMsg('✅ Luta agendada com sucesso!', 'success');
+                    document.getElementById('lutaForm').reset();
+                    listarLutas();
+                } else {
+                    // Exibe a mensagem de erro vinda do FastAPI (ex: "IDs devem ser diferentes")
+                    showMsg(`❌ Erro: ${data.detail || 'Falha ao salvar'}`, 'error');
                 }
-
-                listDiv.innerHTML = data.map(item => `
-                    <div class="list-item">
-                        <div class="list-item-content">
-                            <p><strong>ID:</strong> ${item.id}</p>
-                            <p><strong>Data:</strong> ${item.data}</p>
-                            <p><strong>Horário:</strong> ${item.horario}</p>
-                            <p><strong>Lutador 1:</strong> ID ${item.id_lutador1}</p>
-                            <p><strong>Lutador 2:</strong> ID ${item.id_lutador2}</p>
-                        </div>
-                        <div class="list-item-actions">
-                            <button class="btn-small btn-delete" onclick="deleteLuta(${item.id})">Deletar</button>
-                        </div>
-                    </div>
-                `).join('');
-            } catch (error) {
-                console.error('Erro ao carregar lutas:', error);
+            } catch (err) {
+                showMsg('❌ Erro de conexão: A API está ligada na porta 8001?', 'error');
             }
         }
 
-        async function deleteLuta(id) {
-            if (!confirm('Tem certeza que deseja cancelar esta luta?')) return;
+        async function deletarLuta(id) {
+            if (!confirm("Deseja realmente cancelar este agendamento?")) return;
+
             try {
-                await fetch(`${API_URL}/lutas/${id}`, { method: 'DELETE' });
-                showMessage('msg-lutas', '✓ Luta cancelada com sucesso', 'success');
-                loadLutas();
-            } catch (error) {
-                showMessage('msg-lutas', `✗ Erro: ${error.message}`, 'error');
+                const res = await fetch(`${API_URL}/lutas/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (res.ok) {
+                    showMsg('Luta cancelada!', 'success');
+                    listarLutas(); // Atualiza a lista automaticamente
+                } else {
+                    showMsg('Erro ao cancelar', 'error');
+                }
+            } catch (err) {
+                showMsg('Erro de conexão', 'error');
             }
+
+            
         }
 
-        // ===== STATUS =====
-        async function loadStatus() {
-            try {
-                const response = await fetch(`${API_URL}/`);
-                const data = await response.json();
-                const statusDiv = document.getElementById('status-content');
-                statusDiv.innerHTML = `
-                    <div class="list-item">
-                        <div class="list-item-content">
-                            <p><strong>Status:</strong> <span class="status-badge status-online">${data.status}</span></p>
-                            <p><strong>Mensagem:</strong> ${data.message}</p>
-                            <p><strong>URL da API:</strong> ${API_URL}</p>
-                            <p><strong>Hora do Acesso:</strong> ${new Date().toLocaleString('pt-BR')}</p>
-                        </div>
+        async function listarLutas() {
+            const res = await fetch(`${API_URL}/lutas/`);
+            const data = await res.json();
+            const div = document.getElementById('lutas');
+            
+            // Dentro da função listarLutas, mude o innerHTML para:
+            div.innerHTML = data.map(l => `
+                <div class="luta-item" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong>📅 Data:</strong> ${l.data} | <strong>⏰ Hora:</strong> ${l.horario}<br>
+                        <strong>🤼 Confronto:</strong> ${l.nome_lutador1} ⚔️ ${l.nome_lutador2}
                     </div>
-                `;
-            } catch (error) {
-                const statusDiv = document.getElementById('status-content');
-                statusDiv.innerHTML = `
-                    <div class="list-item" style="border-left-color: #e74c3c;">
-                        <div class="list-item-content">
-                            <p><strong>Status:</strong> <span class="status-badge" style="background-color: #f8d7da; color: #721c24;">OFFLINE</span></p>
-                            <p><strong>Erro:</strong> Não foi possível conectar à API</p>
-                            <p><strong>Detalhes:</strong> ${error.message}</p>
-                        </div>
-                    </div>
-                `;
-            }
+                    <button onclick="deletarLuta(${l.id})" style="width: auto; padding: 5px 10px; background: #dc3545;">
+                        🗑️
+                    </button>
+                </div>
+            `).join('');
         }
 
-        // Carrega dados ao iniciar
-        window.addEventListener('load', () => {
-            loadApostadores();
-        });
+        function showMsg(txt, type) {
+            const m = document.getElementById('msg');
+            m.textContent = txt;
+            m.className = `msg ${type}`;
+            setTimeout(() => m.className = 'msg', 4000);
+        }
+
+        // Carrega a lista assim que abrir a página
+        window.onload = listarLutas;
     </script>
 </body>
 </html>

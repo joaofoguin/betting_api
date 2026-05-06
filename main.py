@@ -1,23 +1,30 @@
+import requests
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
-from models import Base, Luta
+from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy.orm import sessionmaker, Session, declarative_base
 from pydantic import BaseModel
-import requests
-from typing import List, Optional
 
-# Configuração do Banco de Dados
-SQLALCHEMY_DATABASE_URL = "sqlite:///./lutas.db"
+# 1. Configuração do Banco (Lutas)
+SQLALCHEMY_DATABASE_URL = "sqlite:///./lutas_agendadas.db"
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
 
-# Criar as tabelas
+class Luta(Base):
+    __tablename__ = "lutas"
+    id = Column(Integer, primary_key=True, index=True)
+    data = Column(String, nullable=False)
+    horario = Column(String, nullable=False)
+    id_lutador1 = Column(Integer, nullable=False)
+    id_lutador2 = Column(Integer, nullable=False)
+
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="API de Distribuição de Lutas - Sistemas Distribuídos")
+# 2. INICIALIZAÇÃO DO APP (Deve vir antes das rotas!)
+app = FastAPI()
 
-# Configuração do CORS
+# 3. Middlewares
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -26,94 +33,84 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# URL da API Externa de Lutadores (Para você alterar depois)
-EXTERNAL_LUTADORES_API_URL = "https://api-exemplo-lutadores.com/lutadores"
-
-# Dependência para obter a sessão do banco
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-# Schema Pydantic para Luta
+# 4. Pydantic e Dependências
 class LutaBase(BaseModel):
-    evento: str
     data: str
     horario: str
     id_lutador1: int
     id_lutador2: int
-    categoria: str
 
-# Função para validar lutador na API externa
-def validar_lutador_externo(id_lutador: int):
-    """
-    Esta função simula a validação de um lutador em uma API externa.
-    Quando você tiver a URL real, descomente o código abaixo.
-    """
-    # try:
-    #     response = requests.get(f"{EXTERNAL_LUTADORES_API_URL}/{id_lutador}")
-    #     return response.status_code == 200
-    # except:
-    #     return False
-    
-    # Por enquanto, vamos aceitar qualquer ID para você conseguir testar
-    return True
+def get_db():
+    db = SessionLocal()
+    try: yield db
+    finally: db.close()
 
-# --- ENDPOINTS PARA LUTAS ---
+def verificar_lutador_na_outra_api(id_lutador: int):
+    try:
+        r = requests.get(f"https://api-lutadoressd.onrender.com/api/lutadores/{id_lutador}", timeout=5)
+        return r.status_code == 200
+    except:
+        return False
 
-@app.post("/lutas/", tags=["Distribuição de Lutas"])
+# 5. AGORA SIM, AS ROTAS (Depois que o 'app' já existe)
+@app.post("/lutas/")
 def agendar_luta(luta: LutaBase, db: Session = Depends(get_db)):
-    # Validação dos lutadores na API externa
-    if not validar_lutador_externo(luta.id_lutador1) or not validar_lutador_externo(luta.id_lutador2):
-        raise HTTPException(status_code=400, detail="Um ou ambos os lutadores não foram encontrados na API externa")
-    
     if luta.id_lutador1 == luta.id_lutador2:
-        raise HTTPException(status_code=400, detail="Um lutador não pode lutar contra si mesmo")
+        raise HTTPException(status_code=400, detail="IDs devem ser diferentes")
+
+    if not verificar_lutador_na_outra_api(luta.id_lutador1) or not verificar_lutador_na_outra_api(luta.id_lutador2):
+        raise HTTPException(status_code=404, detail="Lutador não existe na API 8000")
 
     db_luta = Luta(**luta.dict())
     db.add(db_luta)
     db.commit()
     db.refresh(db_luta)
-    return {"id": db_luta.id, "message": "Luta agendada e distribuída com sucesso"}
+    return db_luta
 
-@app.get("/lutas/", tags=["Distribuição de Lutas"])
-def listar_lutas(db: Session = Depends(get_db)):
-    return db.query(Luta).all()
 
-@app.get("/lutas/{id}", tags=["Distribuição de Lutas"])
-def obter_luta(id: int, db: Session = Depends(get_db)):
-    luta = db.query(Luta).filter(Luta.id == id).first()
+@app.get("/lutas/{luta_id}")
+def get_luta(luta_id: int, db: Session = Depends(get_db)):
+    luta = db.query(Luta).filter(Luta.id == luta_id).first()
     if not luta:
         raise HTTPException(status_code=404, detail="Luta não encontrada")
     return luta
 
-@app.put("/lutas/{id}", tags=["Distribuição de Lutas"])
-def atualizar_luta(id: int, luta: LutaBase, db: Session = Depends(get_db)):
-    db_obj = db.query(Luta).filter(Luta.id == id).first()
-    if not db_obj:
-        raise HTTPException(status_code=404, detail="Luta não encontrada")
-    
-    for key, value in luta.dict().items():
-        setattr(db_obj, key, value)
-    
-    db.commit()
-    return {"message": "Luta atualizada com sucesso"}
+@app.get("/lutas/")
+def listar_lutas(db: Session = Depends(get_db)):
+    lutas = db.query(Luta).all()
+    resultado = []
 
-@app.delete("/lutas/{id}", tags=["Distribuição de Lutas"])
-def cancelar_luta(id: int, db: Session = Depends(get_db)):
-    db_obj = db.query(Luta).filter(Luta.id == id).first()
+    for luta in lutas:
+        # Busca os nomes na outra API usando o ID
+        nome1 = "Lutador Desconhecido"
+        nome2 = "Lutador Desconhecido"
+        
+        try:
+            r1 = requests.get(f"https://api-lutadoressd.onrender.com/api/lutadores/{luta.id_lutador1}", timeout=5)
+            r2 = requests.get(f"https://api-lutadoressd.onrender.com/api/lutadores/{luta.id_lutador2}", timeout=5)
+            
+            if r1.status_code == 200: nome1 = r1.json().get('nome')
+            if r2.status_code == 200: nome2 = r2.json().get('nome')
+        except:
+            pass # Se a API 8000 cair, mantém "Desconhecido"
+
+        # Montamos um objeto novo que inclui os nomes para o HTML
+        resultado.append({
+            "id": luta.id,
+            "data": luta.data,
+            "horario": luta.horario,
+            "nome_lutador1": nome1,
+            "nome_lutador2": nome2
+        })
+    
+    return resultado
+
+@app.delete("/lutas/{luta_id}")
+def cancelar_luta(luta_id: int, db: Session = Depends(get_db)):
+    db_obj = db.query(Luta).filter(Luta.id == luta_id).first()
     if not db_obj:
         raise HTTPException(status_code=404, detail="Luta não encontrada")
     
     db.delete(db_obj)
     db.commit()
     return {"message": "Luta cancelada com sucesso"}
-
-@app.get("/", tags=["Geral"])
-def read_root():
-    return {
-        "status": "API de Distribuição Online",
-        "message": "Pronta para agendar lutas consumindo dados externos"
-    }

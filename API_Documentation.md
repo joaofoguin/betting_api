@@ -1,38 +1,82 @@
-# Documentação da API de Distribuição de Lutas
+# 📄 Documentação da API de Distribuição de Lutas
 
-Esta API é responsável pelo agendamento e distribuição de lutas, integrando-se com um serviço externo de gerenciamento de lutadores.
+Esta API é responsável pelo agendamento e distribuição de lutas, funcionando como um microserviço que valida dados em um serviço externo de lutadores.
 
-## URL Base do Serviço
-*   **Local:** `http://127.0.0.1:8000`
-*   **Público:** `https://betting-api-hmup.onrender.com`
+---
 
-## Endpoints da API
+## 🌐 URL Base do Serviço
 
-| Método HTTP | Rota | Descrição |
-| :--- | :--- | :--- |
-| `GET` | `/` | Verifica o status da API. |
-| `POST` | `/lutas/` | Agenda uma nova luta (Valida IDs na API externa). |
-| `GET` | `/lutas/` | Lista todas as lutas agendadas. |
-| `GET` | `/lutas/{id}` | Obtém detalhes de uma luta específica. |
-| `PUT` | `/lutas/{id}` | Atualiza os dados de uma luta. |
-| `DELETE` | `/lutas/{id}` | Cancela uma luta agendada. |
+- **Local**: http://127.0.0.1:8001  
+- **Público**: https://betting-api-hmup.onrender.com  
 
-## Integração com API Externa
+---
 
-A API possui uma lógica de integração para validar se os `id_lutador1` e `id_lutador2` existem em um serviço externo antes de permitir o agendamento.
+## 📌 Endpoints da API
 
-### Exemplo de Corpo (Body) para Agendar Luta (`POST /lutas/`)
+| Método HTTP | Rota        | Descrição |
+|------------|------------|----------|
+| GET        | /          | Verifica o status da API |
+| POST       | /lutas/    | Agenda uma nova luta (valida IDs na API externa) |
+| GET        | /lutas/    | Lista todas as lutas agendadas (com nomes dos lutadores) |
+| GET        | /lutas/{id} | Obtém detalhes de uma luta específica por ID |
+| DELETE     | /lutas/{id} | Cancela uma luta agendada e remove do banco |
+
+---
+
+## ⛓️ Integração Distribuída
+
+A API realiza chamadas síncronas para o serviço de lutadores hospedado em:
+
+👉 https://onrender.com  
+
+O agendamento só é confirmado se ambos os lutadores retornarem **status 200 OK** na API externa.
+
+---
+
+## 📥 Estrutura de Dados para Agendamento (POST /lutas/)
+
+Para agendar uma luta, envie um JSON com os campos obrigatórios:
 
 ```json
 {
-  "evento": "UFC 300",
   "data": "2026-07-20",
   "horario": "23:00",
-  "id_lutador1": 10,
-  "id_lutador2": 25,
-  "categoria": "Peso Pesado"
+  "id_lutador1": 1,
+  "id_lutador2": 2
 }
 ```
 
-## Como Configurar a API Externa
-No arquivo `main.py`, localize a variável `EXTERNAL_LUTADORES_API_URL` e substitua pela URL real do serviço de lutadores. A função `validar_lutador_externo` já está preparada para realizar a chamada via `requests`.
+---
+
+## 📤 Resposta de Listagem (GET /lutas/)
+
+A API retorna dados agregados, buscando os nomes dos lutadores em tempo real:
+
+```json
+[
+  {
+    "id": 1,
+    "data": "2026-07-20",
+    "horario": "23:00",
+    "nome_lutador1": "Anderson Silva",
+    "nome_lutador2": "Alex Poatan"
+  }
+]
+```
+
+---
+
+## ⚠️ Tratamento de Erros Comuns
+
+- **400 Bad Request**: IDs dos lutadores são iguais  
+- **404 Not Found**: Um ou ambos os IDs não existem na API externa  
+- **500 Internal Server Error**: Falha de conexão ou timeout com a API externa  
+
+---
+
+## 💡 Dica de Implementação
+
+A função `verificar_lutador_na_outra_api` no código fonte:
+
+- Gerencia exceções de rede  
+- Evita que o sistema trave caso o serviço externo esteja instável  
