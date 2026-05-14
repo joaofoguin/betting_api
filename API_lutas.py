@@ -7,6 +7,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from pydantic import BaseModel
 from security import verificar_assinatura
 from acess_log import registrar_tentativa
+from models import Base
 
 # 1. Configuração do Banco (Lutas)
 SQLALCHEMY_DATABASE_URL = "sqlite:///./database_v_final_v1.db" # MUDE O NOME DO ARQUIVO
@@ -23,7 +24,7 @@ class Luta(Base):
     id_lutador1 = Column(Integer, nullable=False)
     id_lutador2 = Column(Integer, nullable=False)
 
-from models import Base, IntegradorAutorizado
+from models import IntegradorAutorizado
 
 Base.metadata.create_all(bind=engine)
 
