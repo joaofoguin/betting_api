@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 from models import IntegradorAutorizado 
 
 def obter_chave_publica_do_banco(nome_api: str, db: Session):
-    # Busca estritamente pelo nome cadastrado na tabela limpa
     integrador = db.query(IntegradorAutorizado).filter(
         IntegradorAutorizado.nome_api == nome_api
     ).first()
@@ -38,5 +37,5 @@ def verificar_assinatura(mensagem: str, assinatura_base64: str, nome_api: str, d
     except InvalidSignature:
         return False
     except Exception as erro:
-        print("Erro criptográfico interno:", erro)
+        print("[ERRO CRIPTOGRAFIA CRITICAL]:", erro)
         return False
