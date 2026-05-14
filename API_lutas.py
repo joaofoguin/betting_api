@@ -21,6 +21,7 @@ SENHA_ADMIN = os.getenv("SENHA_ADMIN", "admin_local")
 
 class Luta(Base):
     __tablename__ = "lutas"
+    __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True, index=True)
     data = Column(String, nullable=False)
     horario = Column(String, nullable=False)
