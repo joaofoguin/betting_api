@@ -1,18 +1,20 @@
 import requests
-from fastapi import FastAPI, HTTPException, Depends
+import os
+from fastapi import FastAPI, HTTPException, Depends, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import sessionmaker, Session, declarative_base
 from pydantic import BaseModel
-from fastapi import Request, Header
 from security import verificar_assinatura
 from acess_log import registrar_tentativa
+from models import IntegradorAutorizado, Base
 
 # 1. Configuração do Banco (Lutas)
 SQLALCHEMY_DATABASE_URL = "sqlite:///./lutas_agendadas.db"
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+SENHA_ADMIN = os.getenv("SENHA_ADMIN", "admin_local")
 
 class Luta(Base):
     __tablename__ = "lutas"
@@ -56,6 +58,12 @@ def verificar_lutador_na_outra_api(id_lutador: int):
         return False
 
 # 5. Criptografia
+def verificar_admin(x_admin_token: str = Header(None)):
+    if not x_admin_token or x_admin_token != SENHA_ADMIN:
+        raise HTTPException(
+            status_code=403, 
+            detail="Acesso negado: Token de administrador inválido ou ausente."
+        )
 
 def validar_api_externa(
         request: Request,
@@ -92,7 +100,19 @@ def validar_api_externa(
     
     return True
 
+
 # 6. AS ROTAS
+@app.post("/admin/cadastrar-integrador")
+def cadastrar_integrador(nome_api: str, chave_publica: str, db: Session = Depends(get_db), admin_valido: None = Depends(verificar_admin)):
+    # Aqui o ideal seria ter uma senha forte só pra você acessar essa rota
+    novo_integrador = IntegradorAutorizado(
+        nome_api=nome_api,
+        chave_publica_pem=chave_publica
+    )
+    db.add(novo_integrador)
+    db.commit()
+    return {"msg": f"O grupo {nome_api} foi autorizado com sucesso!"}
+
 @app.post("/lutas/")
 def agendar_luta(
     luta: LutaBase,

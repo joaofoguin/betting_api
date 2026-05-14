@@ -80,7 +80,7 @@ para verificar matematicamente se a assinatura foi gerada pelo Gateway oficial.
 Após validar a assinatura, a API realiza uma requisição HTTP GET para o microserviço de lutadores:
 
 ```bash
-https://api-lutadoressd.onrender.com/api/lutadores/
+https://api-lutadoressd.onrender.com/api/lutas/
 ```
 
 O objetivo é confirmar se os IDs enviados realmente existem.
@@ -123,7 +123,7 @@ pip install -r requirements.txt
 ## 3️⃣ Executar a API Localmente
 
 ```bash
-uvicorn main:app --port 8001 --reload
+uvicorn API_lutadores:app --port 8001 --reload
 ```
 
 A API estará disponível em:
@@ -145,7 +145,7 @@ pip install -r requirements.txt
 ## Start Command
 
 ```bash
-uvicorn main:app --host 0.0.0.0 --port $PORT
+uvicorn API_lutadores:app --host 0.0.0.0 --port $PORT
 ```
 
 ---
