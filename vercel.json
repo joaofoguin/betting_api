@@ -3,7 +3,7 @@
   "builds": [
     {
       "src": "API_lutas.py",
-      "use": "@vercel/python"
+      "use": "@vercel/python@0.14.0"
     }
   ],
   "routes": [
