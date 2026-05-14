@@ -1,6 +1,6 @@
 import requests
 import os
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Depends, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
@@ -52,11 +52,10 @@ def verificar_lutador_na_outra_api(id_lutador: int):
     except:
         return False
 
-def verificar_admin(request: Request):
-    # Lendo de forma crua para evitar filtros de proxy da Vercel
-    x_admin_token = request.headers.get("X-Admin-Token") or request.headers.get("x-admin-token")
+def verificar_admin(x_admin_token: str = Header(None, alias="X-Admin-Token")):
     if not x_admin_token or x_admin_token != SENHA_ADMIN:
-        raise HTTPException(status_code=403, detail="Acesso negado: Token inválido.")
+        raise HTTPException(status_code=403, detail="Acesso negado: Token administrativo inválido.")
+    return x_admin_token
 
 def validar_api_externa(request: Request, db: Session = Depends(get_db)):
     ip = request.headers.get("x-forwarded-for") or request.client.host
@@ -90,7 +89,12 @@ def home():
     return {"status": "API de Lutas na Vercel", "docs": "/docs"}
 
 @app.post("/admin/cadastrar-integrador")
-def cadastrar_integrador(nome_api: str, chave_publica: str, db: Session = Depends(get_db), admin_valido = Depends(verificar_admin)):
+def cadastrar_integrador(
+    nome_api: str, 
+    chave_publica: str, 
+    db: Session = Depends(get_db), 
+    admin_token: str = Depends(verificar_admin)
+):
     novo_integrador = IntegradorAutorizado(nome_api=nome_api, chave_publica_pem=chave_publica)
     db.add(novo_integrador)
     db.commit()
@@ -127,3 +131,20 @@ def listar_lutas(request: Request, autorizado: bool = Depends(validar_api_extern
             "nome_lutador1": nome1, "nome_lutador2": nome2
         })
     return resultado
+
+@app.delete("/lutas/{luta_id}")
+def cancelar_luta(
+    luta_id: int, 
+    db: Session = Depends(get_db), 
+    autorizado: bool = Depends(validar_api_externa) # Exige assinatura do integrador
+):
+    """
+    Esta rota deleta uma luta agendada do banco de dados.
+    """
+    db_obj = db.query(Luta).filter(Luta.id == luta_id).first()
+    if not db_obj:
+        raise HTTPException(status_code=404, detail="Luta não encontrada")
+    
+    db.delete(db_obj)
+    db.commit()
+    return {"message": f"Luta {luta_id} cancelada com sucesso"}
