@@ -2,31 +2,26 @@ import requests
 import os
 from fastapi import FastAPI, HTTPException, Depends, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import create_engine, Column, Integer, String
-from sqlalchemy.orm import sessionmaker, Session, declarative_base
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
 from pydantic import BaseModel
-from security import verificar_assinatura
-from acess_log import registrar_tentativa
-from models import IntegradorAutorizado, Base
 
-# 1. Configuração do Banco (Lutas)
+# Imports mapeando a arquitetura separada
+from models import Base, Luta, IntegradorAutorizado
+from acess_log import registrar_tentativa
+from security import verificar_assinatura
+
+# 1. Configuração do Banco Local (SQLite)
+# Mudamos ligeiramente o nome do .db para forçar a criação limpa da nova estrutura
 SQLALCHEMY_DATABASE_URL = "sqlite:///./lutas_agendadas.db"
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
 SENHA_ADMIN = os.getenv("SENHA_ADMIN", "admin_local")
 
-class Luta(Base):
-    __tablename__ = "lutas"
-    id = Column(Integer, primary_key=True, index=True)
-    data = Column(String, nullable=False)
-    horario = Column(String, nullable=False)
-    id_lutador1 = Column(Integer, nullable=False)
-    id_lutador2 = Column(Integer, nullable=False)
-
+# Inicializa as tabelas de forma sincronizada
 Base.metadata.create_all(bind=engine)
 
-# 2. INICIALIZAÇÃO DO APP (Deve vir antes das rotas!)
+# 2. INICIALIZAÇÃO DO APP
 app = FastAPI()
 
 # 3. Middlewares
@@ -47,8 +42,10 @@ class LutaBase(BaseModel):
 
 def get_db():
     db = SessionLocal()
-    try: yield db
-    finally: db.close()
+    try: 
+        yield db
+    finally: 
+        db.close()
 
 def verificar_lutador_na_outra_api(id_lutador: int):
     try:
@@ -57,7 +54,7 @@ def verificar_lutador_na_outra_api(id_lutador: int):
     except:
         return False
 
-# 5. Criptografia
+# 5. Lógica de Validação e Segurança
 def verificar_admin(x_admin_token: str = Header(None)):
     if not x_admin_token or x_admin_token != SENHA_ADMIN:
         raise HTTPException(
@@ -68,7 +65,8 @@ def verificar_admin(x_admin_token: str = Header(None)):
 def validar_api_externa(
         request: Request,
         x_api_nome: str = Header(None),
-        x_assinatura: str = Header(None)
+        x_assinatura: str = Header(None),
+        db: Session = Depends(get_db) # INJETADO: Agora o middleware tem acesso ao banco!
 ):
     ip = request.client.host
     rota = request.url.path
@@ -83,10 +81,10 @@ def validar_api_externa(
         raise HTTPException(status_code=401, detail="Cabeçalhos de autenticação ausentes")
     
     mensagem = f"{x_api_nome}:{rota}"
-
     print("Mensagem verificada no servidor:", mensagem)
 
-    assinatura_valida = verificar_assinatura(mensagem, x_assinatura)
+    # CORRIGIDO: Passamos os parâmetros completos (incluindo o nome e a sessão do DB)
+    assinatura_valida = verificar_assinatura(mensagem, x_assinatura, x_api_nome, db)
 
     registrar_tentativa(
         nome_api=x_api_nome,
@@ -96,30 +94,25 @@ def validar_api_externa(
     )
 
     if not assinatura_valida:
-        raise HTTPException(status_code = 403, detail= "Assinatura inválida")
+        raise HTTPException(status_code=403, detail="Assinatura inválida")
     
     return True
 
 
 # 6. AS ROTAS
+@app.get("/")
+def home():
+    return {"status": "Sistema de Lutas Local Ativo", "docs": "/docs"}
+
 @app.post("/admin/cadastrar-integrador")
 def cadastrar_integrador(nome_api: str, chave_publica: str, db: Session = Depends(get_db), admin_valido: None = Depends(verificar_admin)):
-    # Aqui o ideal seria ter uma senha forte só pra você acessar essa rota
-    novo_integrador = IntegradorAutorizado(
-        nome_api=nome_api,
-        chave_publica_pem=chave_publica
-    )
+    novo_integrador = IntegradorAutorizado(nome_api=nome_api, chave_publica_pem=chave_publica)
     db.add(novo_integrador)
     db.commit()
     return {"msg": f"O grupo {nome_api} foi autorizado com sucesso!"}
 
 @app.post("/lutas/")
-def agendar_luta(
-    luta: LutaBase,
-    db: Session = Depends(get_db),
-    autorizado: bool = Depends(validar_api_externa)
-):
-
+def agendar_luta(luta: LutaBase, db: Session = Depends(get_db), autorizado: bool = Depends(validar_api_externa)):
     if luta.id_lutador1 == luta.id_lutador2:
         raise HTTPException(status_code=400, detail="IDs devem ser diferentes")
 
@@ -133,70 +126,36 @@ def agendar_luta(
     return db_luta
 
 @app.get("/lutas/{luta_id}")
-def buscar_luta(
-    luta_id: int,
-    request: Request,
-    autorizado: bool = Depends(validar_api_externa),
-    db: Session = Depends(get_db)
-):
+def buscar_luta(luta_id: int, request: Request, autorizado: bool = Depends(validar_api_externa), db: Session = Depends(get_db)):
     luta = db.query(Luta).filter(Luta.id == luta_id).first()
-
     if not luta:
         raise HTTPException(status_code=404, detail="Luta não encontrada")
-
     return luta
 
 @app.get("/lutas/")
-def listar_lutas(
-    request: Request,
-    autorizado: bool = Depends(validar_api_externa),
-    db: Session = Depends(get_db)
-):
+def listar_lutas(request: Request, autorizado: bool = Depends(validar_api_externa), db: Session = Depends(get_db)):
     lutas = db.query(Luta).all()
     resultado = []
 
     for luta in lutas:
-        nome1 = "Lutador Desconhecido"
-        nome2 = "Lutador Desconhecido"
-
+        nome1, nome2 = "Lutador Desconhecido", "Lutador Desconhecido"
         try:
-            r1 = requests.get(
-                f"https://api-lutadoressd.onrender.com/api/lutadores/{luta.id_lutador1}",
-                timeout=5
-            )
-            r2 = requests.get(
-                f"https://api-lutadoressd.onrender.com/api/lutadores/{luta.id_lutador2}",
-                timeout=5
-            )
-
-            if r1.status_code == 200:
-                nome1 = r1.json().get("apelido", "Lutador Desconhecido")
-
-            if r2.status_code == 200:
-                nome2 = r2.json().get("apelido", "Lutador Desconhecido")
-
+            r1 = requests.get(f"https://api-lutadoressd.onrender.com/api/lutadores/{luta.id_lutador1}", timeout=5)
+            r2 = requests.get(f"https://api-lutadoressd.onrender.com/api/lutadores/{luta.id_lutador2}", timeout=5)
+            if r1.status_code == 200: nome1 = r1.json().get("apelido", "Lutador Desconhecido")
+            if r2.status_code == 200: nome2 = r2.json().get("apelido", "Lutador Desconhecido")
         except:
             pass
 
         resultado.append({
-            "id": luta.id,
-            "data": luta.data,
-            "horario": luta.horario,
-            "id_lutador1": luta.id_lutador1,
-            "id_lutador2": luta.id_lutador2,
-            "nome_lutador1": nome1,
-            "nome_lutador2": nome2
+            "id": luta.id, "data": luta.data, "horario": luta.horario,
+            "id_lutador1": luta.id_lutador1, "id_lutador2": luta.id_lutador2,
+            "nome_lutador1": nome1, "nome_lutador2": nome2
         })
-
     return resultado
 
 @app.delete("/lutas/{luta_id}")
-def cancelar_luta(
-    luta_id: int,
-    db: Session = Depends(get_db),
-    autorizado: bool = Depends(validar_api_externa)
-):
-
+def cancelar_luta(luta_id: int, db: Session = Depends(get_db), autorizado: bool = Depends(validar_api_externa)):
     db_obj = db.query(Luta).filter(Luta.id == luta_id).first()
     if not db_obj:
         raise HTTPException(status_code=404, detail="Luta não encontrada")
