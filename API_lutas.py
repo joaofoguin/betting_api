@@ -10,7 +10,7 @@ from acess_log import registrar_tentativa
 from models import Base
 
 # 1. Configuração do Banco (Lutas)
-SQLALCHEMY_DATABASE_URL = os.getenv("POSTGRES_URL")
+SQLALCHEMY_DATABASE_URL = os.getenv("POSTGRES_URL_NON_POOLING")
 
 if SQLALCHEMY_DATABASE_URL and SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
     SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
