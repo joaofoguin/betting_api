@@ -28,3 +28,4 @@ class LogAcesso(Base):
     rota = Column(String, nullable=False)
     ip = Column(String, nullable=False)
     status = Column(String, nullable=False)
+    ativo = Column(Integer, default=1, nullable=False)
