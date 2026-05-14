@@ -1,4 +1,3 @@
-````markdown
 # 🥊 API de Apostas em Lutas - Sistemas Distribuídos (Microserviço)
 
 Este projeto consiste em uma API RESTful desenvolvida para simular um sistema de agendamento e apostas em lutas. Ele foi construído como parte da disciplina de Sistemas Distribuídos, demonstrando a comunicação entre serviços independentes (interoperabilidade) e implementando uma **Arquitetura de Segurança M2M (Machine-to-Machine) com Criptografia RSA**.
