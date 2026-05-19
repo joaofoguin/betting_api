@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException, Depends, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
+from rabbitmq_service import publicar_evento
 
 from models import Base, Luta, IntegradorAutorizado
 from acess_log import registrar_tentativa
@@ -105,6 +106,17 @@ def agendar_luta(luta: LutaBase, db: Session = Depends(get_db), autorizado: bool
     db.add(db_luta)
     db.commit()
     db.refresh(db_luta)
+
+    publicar_evento(
+    "luta_criada",
+    {
+        "id": db_luta.id,
+        "data": db_luta.data,
+        "horario": db_luta.horario,
+        "id_lutador1": db_luta.id_lutador1,
+        "id_lutador2": db_luta.id_lutador2
+    }
+)
     return db_luta
 
 @app.get("/lutas/")
@@ -138,6 +150,14 @@ def cancelar_luta(
     
     db.delete(db_obj)
     db.commit()
+
+    publicar_evento(
+        "luta_cancelada",
+        {
+            "id": luta_id
+        }
+    )
+
     return {"message": f"Luta {luta_id} cancelada com sucesso"}
 
 @app.put("/lutas/{luta_id}")
@@ -167,4 +187,15 @@ def editar_luta(
     db.commit()
     db.refresh(db_luta)
     
+    publicar_evento(
+        "luta_editada",
+        {
+            "id": db_luta.id,
+            "data": db_luta.data,
+            "horario": db_luta.horario,
+            "id_lutador1": db_luta.id_lutador1,
+            "id_lutador2": db_luta.id_lutador2
+        }
+    )
+
     return {"msg": "Luta atualizada com sucesso", "luta": db_luta}

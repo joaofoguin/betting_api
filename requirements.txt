@@ -5,3 +5,4 @@ cryptography
 requests
 pydantic
 psycopg2-binary
+pika
